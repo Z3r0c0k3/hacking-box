@@ -1,4 +1,4 @@
-# DYHS Hacking Badge
+# Arduino Hacking Badge
 
 ## Thanks to
 
@@ -32,7 +32,7 @@
 - 문제 해결 상태는 EEPROM에 저장되어 전원이 꺼져도 유지
 - 시리얼 모니터를 통한 Shell 모방 인터페이스
 
-### 주요 명령어
+### 주요 명령어 (예제코드 기준)
 
 - `dyhs`: 게임 시작 (메인 화면으로 이동)
 - `help`: 게임 도움말 표시
