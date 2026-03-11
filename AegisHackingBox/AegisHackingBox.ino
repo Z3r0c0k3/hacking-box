@@ -58,8 +58,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // 문제별 정답
 const char *ANSWERS[NUM_PROBLEMS] = {
     "Aegis{4}",
-    "Aegis{D0_Y0u_Kn0W_Wh@T_3nC0dInG_1s?}",
     "Aegis{CQCQCQDEAEGISAEGISAR}",
+    "Aegis{D0_Y0u_Kn0W_Wh@T_3nC0dInG_1s?}",
     "Aegis{C0ngr@tU1AtI0nS_Y0u_h@cK3D_@11_Th3s3_d3vIc3s}"};
 
 // EEPROM 주소 정의
