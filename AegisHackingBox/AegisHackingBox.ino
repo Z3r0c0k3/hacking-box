@@ -209,15 +209,15 @@ int sumEEPROM()
     return sum;
 }
 
-// 모든 문제 해결 여부 (수정: 1개만 풀어도 All Clear 로직으로 넘어감)
+// 모든 문제 해결 여부
 bool allProblemsCompleted()
 {
     for (int i = 0; i < NUM_PROBLEMS; i++)
     {
-        if (statusEEPROM(i)) // 하나라도 1(성공)인 상태라면
-            return true;     // 바로 true(전체 완료)를 반환
+        if (statusEEPROM(i) == 0)
+            return false;
     }
-    return false; // 모두 0일 때만 false 반환
+    return true;
 }
 
 // PROGMEM 출력
@@ -272,21 +272,19 @@ void playMarioClearSound()
 {
     int melody[] = {
         NOTE_G4, NOTE_C5, NOTE_E5, NOTE_G5, NOTE_C6, NOTE_E6,
-        NOTE_G6, NOTE_E6, 
+        NOTE_G6, NOTE_E6,
         NOTE_GS4, NOTE_C5, NOTE_DS5, NOTE_GS5, NOTE_C6, NOTE_DS6,
         NOTE_GS6, NOTE_DS6,
         NOTE_AS4, NOTE_D5, NOTE_F5, NOTE_AS5, NOTE_D6, NOTE_F6,
-        NOTE_AS6, NOTE_AS6, NOTE_AS6, NOTE_C7
-    };
-    
+        NOTE_AS6, NOTE_AS6, NOTE_AS6, NOTE_C7};
+
     int durations[] = {
-        100, 100, 100, 100, 100, 100, 
-        300, 300, 
-        100, 100, 100, 100, 100, 100, 
+        100, 100, 100, 100, 100, 100,
         300, 300,
-        100, 100, 100, 100, 100, 100, 
-        200, 200, 200, 1000
-    };
+        100, 100, 100, 100, 100, 100,
+        300, 300,
+        100, 100, 100, 100, 100, 100,
+        200, 200, 200, 1000};
 
     int length = sizeof(melody) / sizeof(int);
 
@@ -302,8 +300,7 @@ void playMarioClearSound()
 void updateStatusLCD()
 {
     lcd.clear();
-    
-    // [변경] 모든 문제 해결 시, 성공 화면을 고정으로 표시
+
     if (allProblemsCompleted())
     {
         lcd.setCursor(0, 0);
@@ -313,7 +310,6 @@ void updateStatusLCD()
     }
     else
     {
-        // 아직 다 못 풀었을 때는 기존 O/X 현황 표시
         lcd.setCursor(1, 0);
         lcd.print("Aegis Hack Box");
 
@@ -367,33 +363,19 @@ void handleProblem(int problemNumber)
 
         if (answer.equals(ANSWERS[index]))
         {
-            // 정답 처리 및 EEPROM 저장
             EEPROM.update(eepromAddresses[index], 1);
-            
-            // =========================================================
-            // [변경] 실행 순서: 1. LCD 출력 -> 2. 사운드 -> 3. Serial
-            // =========================================================
 
-            if (allProblemsCompleted()) 
+            if (allProblemsCompleted())
             {
-                // --- Case 1: 모든 문제 해결 (All Clear) ---
-                
-                // 1. LCD 출력 (updateStatusLCD가 성공 메시지 출력함)
-                updateStatusLCD(); 
-                
-                // 2. 사운드 출력 (마리오 멜로디)
+                updateStatusLCD();
                 playMarioClearSound();
 
-                // 3. Serial 출력
                 Serial.println("정답입니다!! 정답 갯수:" + String(sumEEPROM()) + "/4");
                 printEmptyLines(LINE_SPACING);
                 showCompletionMessageSerial();
             }
-            else 
+            else
             {
-                // --- Case 2: 개별 문제 해결 (아직 남음) ---
-
-                // 1. LCD 출력
                 lcd.clear();
                 lcd.setCursor(0, 0);
                 lcd.print("No.");
@@ -401,56 +383,51 @@ void handleProblem(int problemNumber)
                 lcd.setCursor(0, 1);
                 lcd.print("Solved :)");
 
-                // 2. 사운드 출력
                 playCorrectSound();
 
-                // 3. Serial 출력
-                Serial.println("정답입니다!! 정답 갯수:" + String(sumEEPROM()) +
-                           "/4\n\'aegis\'를 입력해서 처음으로 돌아가주세요.");
+                Serial.println("정답입니다!! 정답 갯수:" + String(sumEEPROM()) + "/4");
+
+                delay(1500);
                 printEmptyLines(VERY_LONG_SPACING);
-                
-                // 잠시 후 상태 화면 복귀
-                delay(1500); 
+                printProgmemString(intro);
+                printEmptyLines(LINE_SPACING);
+
                 updateStatusLCD();
             }
             break;
         }
         else if (answer.equals("exit"))
         {
-            // 나가기 처리
             lcd.clear();
             lcd.setCursor(0, 0);
             lcd.print("Exiting");
             lcd.setCursor(0, 1);
             lcd.print("Problem...");
-            
+
             Serial.println("\n게임에서 나가기를 선택했습니다. \'aegis\'를 입력해서 처음으로 돌아가주세요.");
             delay(1000);
-            
-            // 메인 상태 화면으로 복귀
+
             updateStatusLCD();
-            
+
             printEmptyLines(VERY_LONG_SPACING);
             break;
         }
         else
         {
-            // 오답 처리
             lcd.clear();
             lcd.setCursor(0, 0);
             lcd.print("No.");
             lcd.print(problemNumber);
             lcd.setCursor(0, 1);
             lcd.print("Retry :(");
-            
+
             playWrongSound();
-            
+
             Serial.println("입력값: " + answer);
             Serial.println("정답이 아니거나 FLAG 형식에 맞지 않습니다. 다시 시도하세요.");
-            
+
             delay(1000);
-            
-            // 1초 후 다시 solving 메시지로 복귀
+
             lcd.clear();
             lcd.setCursor(0, 0);
             lcd.print("No. ");
@@ -468,32 +445,27 @@ void setup()
     // LCD 초기화
     lcd.init();
     lcd.backlight();
-    
-    // ================== [추가된 부분] 부팅 시퀀스 ==================
-    // 1. Initializing + Loading Bar
+
+    // 부팅 시퀀스
     lcd.setCursor(0, 0);
     lcd.print("Initializing...");
 
     lcd.setCursor(0, 1);
-    for (int i = 0; i < 16; i++) {
-        lcd.write(0xFF); // 꽉 찬 네모 칸(Block Character) 출력
-        delay(100);      // 속도 조절 (전체 약 1.6초)
+    for (int i = 0; i < 16; i++)
+    {
+        lcd.write(0xFF);
+        delay(100);
     }
-    delay(500); // 100% 완료 후 잠시 대기
+    delay(500);
 
-    // 2. Version Screen
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Aegis Hack Box");
     lcd.setCursor(0, 1);
     lcd.print("Version 1.0.0");
-    delay(1500); // 1.5초간 유지
-    // ============================================================
+    delay(1500);
 
-    // 시작 시 LCD 상태 표시
     updateStatusLCD();
-
-    // 시작 알림음
     playCorrectSound();
 
     if (Serial)
@@ -505,7 +477,6 @@ void setup()
         printEmptyLines(LINE_SPACING);
         if (allProblemsCompleted())
         {
-            // 이미 다 깬 상태라면 Serial 메시지도 보여줌
             showCompletionMessageSerial();
         }
     }
@@ -520,17 +491,17 @@ void loop()
 
         if (input == "")
         {
-            // 엔터만 쳤을 때 특별한 동작 없음
         }
         else if (input == "reset")
         {
-            printEmptyLines(LINE_SPACING);
             resetEEPROM();
-            updateStatusLCD(); // 리셋되었으므로 O/X 화면으로 돌아옴
-            Serial.println("EEPROM RESET SUCCESS!!");
+            updateStatusLCD();
             playCorrectSound();
-            delay(1000);
-            printEmptyLines(VERY_LONG_SPACING);
+
+            printEmptyLines(50);
+
+            printProgmemString(intro);
+            printEmptyLines(LINE_SPACING);
         }
         else if (input == START_STR)
         {
@@ -548,6 +519,22 @@ void loop()
         else if (input == "clear")
         {
             printEmptyLines(VERY_LONG_SPACING);
+        }
+        else if (input == "allsolve")
+        {
+            // 모든 문제를 즉시 해결 처리
+            for (int i = 0; i < NUM_PROBLEMS; i++)
+            {
+                EEPROM.update(eepromAddresses[i], 1);
+            }
+
+            updateStatusLCD();
+            playMarioClearSound();
+
+            printEmptyLines(LINE_SPACING);
+            Serial.println("SYSTEM: ALL PROBLEMS HAVE BEEN FORCE-SOLVED.");
+            printEmptyLines(LINE_SPACING);
+            showCompletionMessageSerial();
         }
         else if (input == "status")
         {
